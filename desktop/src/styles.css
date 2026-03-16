@@ -6031,6 +6031,29 @@ body.resizing .jian-sidebar-inner {
     font-family: var(--font-mono);
 }
 
+.about-update {
+    margin-top: var(--space-xs);
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+}
+
+.about-update-link {
+    color: var(--text-body);
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    opacity: 0.8;
+    transition: opacity 0.2s;
+}
+
+.about-update-link:hover {
+    opacity: 1;
+}
+
 .about-info {
     border-top: 1px solid var(--overlay-light);
     border-bottom: 1px solid var(--overlay-light);

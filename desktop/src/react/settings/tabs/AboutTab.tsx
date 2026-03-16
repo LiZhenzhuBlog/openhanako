@@ -11,6 +11,7 @@ export function AboutTab() {
   const { settingsConfig } = useSettingsStore();
   const [version, setVersion] = useState('');
   const [licenseOpen, setLicenseOpen] = useState(false);
+  const [updateInfo, setUpdateInfo] = useState<{ version: string; downloadUrl: string } | null>(null);
 
   // 全权模式 easter egg：点击头像 5 次解锁
   const [devUnlocked, setDevUnlocked] = useState(false);
@@ -33,6 +34,9 @@ export function AboutTab() {
 
   useEffect(() => {
     hana?.getAppVersion?.().then((v: string) => setVersion(v || ''));
+    hana?.checkUpdate?.().then((info: any) => {
+      if (info?.version) setUpdateInfo(info);
+    });
   }, []);
 
   return (
@@ -47,6 +51,26 @@ export function AboutTab() {
         <div className="about-name">Hanako</div>
         <div className="about-tagline">{t('settings.about.tagline')}</div>
         {version && <div className="about-version">v{version}</div>}
+        {updateInfo && (
+          <div className="about-update">
+            <span>{t('settings.about.updateAvailable', { version: updateInfo.version })}</span>
+            <a
+              className="about-update-link"
+              href="#"
+              onClick={(e) => {
+                e.preventDefault();
+                hana?.openExternal?.(updateInfo.downloadUrl);
+              }}
+            >
+              {t('settings.about.updateDownload')}
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                <polyline points="15 3 21 3 21 9" />
+                <line x1="10" y1="14" x2="21" y2="3" />
+              </svg>
+            </a>
+          </div>
+        )}
       </div>
 
       <section className="about-info">

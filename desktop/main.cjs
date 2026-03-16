@@ -194,7 +194,8 @@ async function startServer() {
 
   // ── 2. Fork 新 server ──
   _serverLogs = [];
-  const serverPath = path.join(__dirname, "..", "server", "index.js");
+  // boot.cjs 包装 ESM 入口，捕获 native module 加载失败等错误
+  const serverPath = path.join(__dirname, "..", "server", "boot.cjs");
 
   await new Promise((resolve, reject) => {
     // 用 Electron 自带的 Node.js 跑 server（ELECTRON_RUN_AS_NODE=1 让它以纯 Node 模式运行）
@@ -254,8 +255,12 @@ async function startServer() {
       reject(err);
     });
 
-    serverProcess.on("exit", (code) => {
-      if (code !== 0 && code !== null) {
+    serverProcess.on("exit", (code, signal) => {
+      if (signal) {
+        // 被信号终止（如 SIGSEGV），立即报错而非等 60s 超时
+        clearTimeout(timeout);
+        reject(new Error(`Server 被信号终止 (${signal})`));
+      } else if (code !== 0 && code !== null) {
         clearTimeout(timeout);
         reject(new Error(`Server 退出，code: ${code}`));
       }
@@ -317,6 +322,25 @@ function createTray() {
 function writeCrashLog(errorMessage) {
   const logs = _serverLogs.join("");
   const timestamp = new Date().toISOString();
+
+  // 没有任何输出时，附加诊断信息帮助定位问题
+  let diagnostics = "";
+  if (!logs) {
+    const serverDir = path.join(__dirname, "..", "server");
+    const sqlitePath = path.join(__dirname, "..", "node_modules", "better-sqlite3", "build", "Release", "better_sqlite3.node");
+    diagnostics = [
+      ``,
+      `--- Diagnostics ---`,
+      `HANA_HOME: ${hanakoHome}`,
+      `Server dir: ${serverDir}`,
+      `boot.cjs exists: ${fs.existsSync(path.join(serverDir, "boot.cjs"))}`,
+      `index.js exists: ${fs.existsSync(path.join(serverDir, "index.js"))}`,
+      `better_sqlite3.node exists: ${fs.existsSync(sqlitePath)}`,
+      `ELECTRON_RUN_AS_NODE: ${process.env.ELECTRON_RUN_AS_NODE || "unset"}`,
+      `Node ABI: ${process.versions.modules || "unknown"}`,
+    ].join("\n");
+  }
+
   const content = [
     `=== Hanako Crash Log ===`,
     `Time: ${timestamp}`,
@@ -327,6 +351,7 @@ function writeCrashLog(errorMessage) {
     ``,
     `--- Server Output ---`,
     logs || "(no output captured)",
+    diagnostics,
     ``,
   ].join("\n");
 
@@ -1238,10 +1263,45 @@ function createOnboardingWindow(query = {}) {
   });
 }
 
+// ── 更新检查 ──
+let _updateInfo = null;
+
+async function checkForUpdates() {
+  try {
+    const res = await fetch("https://api.github.com/repos/liliMozi/openhanako/releases/latest", {
+      headers: { "User-Agent": "Hanako" },
+      signal: AbortSignal.timeout(10000),
+    });
+    if (!res.ok) return;
+    const data = await res.json();
+    const latest = (data.tag_name || "").replace(/^v/, "");
+    const current = app.getVersion();
+    if (!latest || !isNewerVersion(latest, current)) return;
+    const ext = process.platform === "win32" ? ".exe" : ".dmg";
+    _updateInfo = {
+      version: latest,
+      url: data.html_url,
+      downloadUrl: (data.assets || []).find(a => a.name?.endsWith(ext))?.browser_download_url || data.html_url,
+    };
+    console.log(`[desktop] 发现新版本: v${latest}（当前 v${current}）`);
+  } catch {}
+}
+
+function isNewerVersion(latest, current) {
+  const a = latest.split(".").map(Number);
+  const b = current.split(".").map(Number);
+  for (let i = 0; i < Math.max(a.length, b.length); i++) {
+    if ((a[i] || 0) > (b[i] || 0)) return true;
+    if ((a[i] || 0) < (b[i] || 0)) return false;
+  }
+  return false;
+}
+
 // ── IPC ──
 ipcMain.handle("get-server-port", () => serverPort);
 ipcMain.handle("get-server-token", () => serverToken);
 ipcMain.handle("get-app-version", () => app.getVersion());
+ipcMain.handle("check-update", () => _updateInfo);
 
 ipcMain.handle("open-settings", (_event, tab, theme) => createSettingsWindow(tab, theme));
 
@@ -1842,6 +1902,9 @@ app.whenReady().then(async () => {
         }
       });
     }
+
+    // 6. 后台检查更新（不阻塞启动）
+    checkForUpdates().catch(() => {});
   } catch (err) {
     console.error("[desktop] 启动失败:", err.message);
     // 写入 crash.log 并获取详细日志

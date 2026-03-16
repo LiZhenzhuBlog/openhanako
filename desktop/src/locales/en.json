@@ -370,7 +370,9 @@
       "fullAccessWarningBody2": "1. Filesystem is not sandboxed — can read/write any path\n2. Terminal commands are unrestricted — can run sudo, chmod, etc.\n3. OS-level isolation (macOS Seatbelt / Linux bubblewrap) will be disabled",
       "fullAccessWarningBody3": "Only recommended when you fully trust the agent's behavior and need system-level operations.",
       "fullAccessCancel": "Cancel",
-      "fullAccessConfirm": "I understand the risks, enable"
+      "fullAccessConfirm": "I understand the risks, enable",
+      "updateAvailable": "New version available: v{{version}}",
+      "updateDownload": "Download"
     },
     "me": {
       "title": "Me",

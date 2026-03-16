@@ -16,6 +16,7 @@ contextBridge.exposeInMainWorld("hana", {
   getServerPort: () => ipcRenderer.invoke("get-server-port"),
   getServerToken: () => ipcRenderer.invoke("get-server-token"),
   getAppVersion: () => ipcRenderer.invoke("get-app-version"),
+  checkUpdate: () => ipcRenderer.invoke("check-update"),
   appReady: () => ipcRenderer.invoke("app-ready"),
   selectFolder: () => ipcRenderer.invoke("select-folder"),
   selectSkill: () => ipcRenderer.invoke("select-skill"),

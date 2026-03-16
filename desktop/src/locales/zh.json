@@ -370,7 +370,9 @@
       "fullAccessWarningBody2": "1. 文件系统不受沙盒保护，可读写任意路径\n2. 终端命令不受限制，可执行 sudo、chmod 等操作\n3. OS 级隔离（macOS Seatbelt / Linux bubblewrap）将被关闭",
       "fullAccessWarningBody3": "仅建议在完全信任 Agent 行为且需要系统级操作时开启。",
       "fullAccessCancel": "取消",
-      "fullAccessConfirm": "我了解风险，开启"
+      "fullAccessConfirm": "我了解风险，开启",
+      "updateAvailable": "有新版本可用：v{{version}}",
+      "updateDownload": "下载"
     },
     "me": {
       "title": "我",
